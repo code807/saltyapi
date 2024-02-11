@@ -163,6 +163,9 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 json=dat
             ).json()
             try:
+                print("\n\n")
+                pprint(returndata)
+                print("\n\n")
                 if "translatedText" in returndata:
                     r = returndata["translatedText"]
                 else:
