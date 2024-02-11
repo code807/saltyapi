@@ -124,11 +124,11 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                     json=dat
                 ).json()
                 try:
-                    returndata = returndata["data"]["translations"][0]["translatedText"]
+                    r = returndata["data"]["translations"][0]["translatedText"]
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from Google Translate"}
-                await addtodb(api, returndata, user)
-                return {"response": returndata}
+                await addtodb(api, r, user)
+                return {"response": r}
 
         case 2: # DeepL
             if checkquota(api):
@@ -145,11 +145,23 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                     json=dat
                 ).json()
                 try:
-                    returndata = returndata["translations"][0]["text"]
+                    r = returndata["translations"][0]["text"]
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from DEEPL"}
-                await addtodb(api, returndata, user)
-                return {"response": returndata}
+                await addtodb(api, r, user)
+                return {"response": r}
         
         case 1: # LibreTranslate
-            return {"response": "Error: Tried to use LibreTranslate"}
+            returndata = requests.request(
+                method="POST",
+                url="http://localhost:5000/translate",
+                json=dat
+            ).json()
+            try:
+                if "translatedText" in returndata:
+                    r = returndata["translatedText"]
+                else:
+                    return {"response": "Error: Translation Failed"}
+            except requests.exceptions.JSONDecodeError:
+                return {"response": "ERROR: Error retrieving translation"}
+            return {"response": r}

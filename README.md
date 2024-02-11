@@ -1,2 +1,2 @@
 # saltyapi
-A merging of all my current web api's into one repository
+This service expects a version of LibreTranslate running on locally on port 5000
