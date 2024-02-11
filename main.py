@@ -152,6 +152,11 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 return {"response": r}
         
         case 1: # LibreTranslate
+            dat = {
+                "q":q,
+                "target":target,
+                "source":source
+            }
             returndata = requests.request(
                 method="POST",
                 url="http://localhost:5000/translate",
