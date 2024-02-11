@@ -162,6 +162,11 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 url="http://localhost:5000/translate",
                 json=dat
             ).json()
+            print()
+            print()
+            pprint(returndata)
+            print()
+            print()
             try:
                 if "translatedText" in returndata:
                     r = returndata["translatedText"]
