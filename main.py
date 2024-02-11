@@ -154,8 +154,8 @@ async def translate(data: TranslationData)  -> ResponseMessage:
         case 1: # LibreTranslate
             dat = {
                 "q":q,
-                "target":target,
-                "source":source
+                "target":target.lower(),
+                "source":source.lower()
             }
             returndata = requests.request(
                 method="POST",
@@ -163,9 +163,6 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 json=dat
             ).json()
             try:
-                print("\n\n")
-                pprint(returndata)
-                print("\n\n")
                 if "translatedText" in returndata:
                     r = returndata["translatedText"]
                 else:
