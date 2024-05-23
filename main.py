@@ -65,6 +65,14 @@ class Language(str, Enum):
     Turkish = "TR",
     Ukrainian = "UK"
 
+    @classmethod
+    def _missing_(cls, value):
+        value = value.upper()
+        for member in cls:
+            if member.upper() == value:
+                return member
+        return None
+
 class ResponseMessage(BaseModel):
     response: str
 
@@ -100,15 +108,16 @@ async def addtodb(method, response, user):
 
 
 @app.post("/translate")
+@app.post("/translate/")
 async def translate(data: TranslationData)  -> ResponseMessage:
     q = data.q
-    target = data.target.value
-    source = data.source.value
+    target = data.target.value.upper()
+    source = data.source.value.upper()
     user = data.user
     api = data.method
     if target == source:
-        return {"response": "Error: Source and Target languages must be different"}
-    
+        return "Error: Source and Target languages must be different"
+
     match api:
         case 0: # Google Translate
             if checkquota(api):
@@ -128,7 +137,7 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from Google Translate"}
                 await addtodb(api, r, user)
-                return {"response": r}
+                return r
 
         case 2: # DeepL
             if checkquota(api):
@@ -149,29 +158,7 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from DEEPL"}
                 await addtodb(api, r, user)
-                return {"response": r}
-        
+                return r
+
         case 1: # LibreTranslate
-            dat = {
-                "q":q,
-                "target":target.lower(),
-                "source":source.lower()
-            }
-            returndata = requests.request(
-                method="POST",
-                url="http://localhost:5000/translate",
-                json=dat
-            ).json()
-            print()
-            print()
-            pprint(returndata)
-            print()
-            print()
-            try:
-                if "translatedText" in returndata:
-                    r = returndata["translatedText"]
-                else:
-                    return {"response": "Error: Translation Failed"}
-            except requests.exceptions.JSONDecodeError:
-                return {"response": "ERROR: Error retrieving translation"}
-            return {"response": r}
+            return "LibreTranslate support has been removed"
