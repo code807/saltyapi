@@ -15,6 +15,7 @@ deepl_quota = int(os.getenv('DEEPL_QUOTA', 1500000))
 from pprint import pprint
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from fastapi.responses import PlainTextResponse
 from enum import Enum
 import time
 import requests
@@ -125,14 +126,14 @@ async def addtodb(method, response, user):
 
 @app.post("/translate")
 @app.post("/translate/")
-async def translate(data: TranslationData)  -> ResponseMessage:
+async def translate(data: TranslationData)  -> PlainTextResponse:
     q = data.q
     target = data.target.value.upper()
     source = data.source.value.upper()
     user = data.user
     api = data.method
     if target == source:
-        return {"response": "Error: Source and Target languages must be different"}
+        return "Error: Source and Target languages must be different"
     match api:
         case 0: # Google Translate
             if checkquota(api):
@@ -153,7 +154,7 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                     return {"response": "Error: Unexpected Response from Google Translate"}
                 if enable_db:
                     await addtodb(api, r, user)
-                return {"response": r}
+                return r
 
         case 2: # DeepL
             if checkquota(api):
@@ -172,10 +173,10 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 try:
                     r = returndata["translations"][0]["text"]
                 except Exception as e:
-                    return {"response": "Error: Unexpected Response from DEEPL"}
+                    return "Error: Unexpected Response from DEEPL"
                 if enable_db:
                     await addtodb(api, r, user)
-                return {"response": r}
+                return r
         
         case 1: # LibreTranslate (Deprecated)
-            return {"response": "NOTICE: LibreTranslate method no longer supported"}
+            return "NOTICE: LibreTranslate method no longer supported"
