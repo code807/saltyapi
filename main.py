@@ -2,38 +2,47 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+gtranslate_key = os.getenv('GOOGLE_TRANSLATE_API_KEY', "")
+deepl_key = os.getenv('DEEPL_API_KEY',"")
+translationsdb = os.getenv('TRANSLATION_DATABASE', "translations.db")
+
+enable_db = bool(os.getenv('ENABLE_DATABASE', True))
+
+google_quota = int(os.getenv('GOOGLE_QUOTA', 1500000))
+deepl_quota = int(os.getenv('DEEPL_QUOTA', 1500000))
+
 from pprint import pprint
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from enum import Enum
 import time
 import os
-import sqlite3
-import aiosqlite
 import requests
 
-
-gtranslate_key = os.environ['GOOGLE_TRANSLATE_API_KEY']
-deepl_key = os.environ['DEEPL_API_KEY']
-translationsdb = os.environ['TRANSLATION_DATABASE']
-
-
-if os.path.isfile(translationsdb):
-    pass
-else:
-    connection_obj = sqlite3.connect(translationsdb)
-    cursor_obj = connection_obj.cursor()
-    cursor_obj.execute("DROP TABLE IF EXISTS requests")
-    table = """ CREATE TABLE requests (
-                username INTEGER,
-                timestamp REAL,
-                characters INTEGER,
-                method INTEGER
-            ); """
-    cursor_obj.execute(table)
-    connection_obj.close()
+if enable_db:
+    import sqlite3
+    import aiosqlite
 
 
+if enable_db:
+    # Create the table if it does not exist
+    if os.path.isfile(translationsdb):
+        pass
+    else:
+        connection_obj = sqlite3.connect(translationsdb)
+        cursor_obj = connection_obj.cursor()
+        cursor_obj.execute("DROP TABLE IF EXISTS requests")
+        table = """ CREATE TABLE requests (
+                    username INTEGER,
+                    timestamp REAL,
+                    characters INTEGER,
+                    method INTEGER
+                ); """
+        cursor_obj.execute(table)
+        connection_obj.close()
+
+
+# Language codes
 class Language(str, Enum):
     Arabic = "AR",
     Bulgarian = "BG",
@@ -75,27 +84,34 @@ class TranslationData(BaseModel):
     target: Language = Language.Japanese
     method: int
 
-async def checkquota() -> bool:
-    return True
-
 app = FastAPI()
 
 async def checkquota(method):
+    # Skip check if database is disabled
+    if not enable_db:
+        return True
     async with aiosqlite.connect(translationsdb) as db:
         lastmonth = time.time() - 2592000
         cursor = await db.execute('SELECT SUM(characters) FROM requests WHERE timestamp > ? AND method = ?', (lastmonth, method))
         amount = await cursor.fetchone()
+        quota = -1
+        match method:
+            case 0:
+                quota = google_quota
+            case 2:
+                quota = deepl_quota
         try:
-            if amount[0] > 1500000:
+            if amount[0] > quota:
                 return False
         except Exception as e:
             print(e)
             return False
         return True
 
+
 async def addtodb(method, response, user):
     async with aiosqlite.connect(translationsdb) as db:
-        await db.execute('INSERT INTO requests VALUES (?, ?, ?, ?)', (user, time.time(), len(response), 0))
+        await db.execute('INSERT INTO requests VALUES (?, ?, ?, ?)', (user, time.time(), len(response), method))
         await db.commit()
 
 
@@ -108,7 +124,6 @@ async def translate(data: TranslationData)  -> ResponseMessage:
     api = data.method
     if target == source:
         return {"response": "Error: Source and Target languages must be different"}
-    
     match api:
         case 0: # Google Translate
             if checkquota(api):
@@ -127,7 +142,8 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                     r = returndata["data"]["translations"][0]["translatedText"]
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from Google Translate"}
-                await addtodb(api, r, user)
+                if enable_db:
+                    await addtodb(api, r, user)
                 return {"response": r}
 
         case 2: # DeepL
@@ -148,30 +164,9 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                     r = returndata["translations"][0]["text"]
                 except Exception as e:
                     return {"response": "Error: Unexpected Response from DEEPL"}
-                await addtodb(api, r, user)
+                if enable_db:
+                    await addtodb(api, r, user)
                 return {"response": r}
         
-        case 1: # LibreTranslate
-            dat = {
-                "q":q,
-                "target":target.lower(),
-                "source":source.lower()
-            }
-            returndata = requests.request(
-                method="POST",
-                url="http://localhost:5000/translate",
-                json=dat
-            ).json()
-            print()
-            print()
-            pprint(returndata)
-            print()
-            print()
-            try:
-                if "translatedText" in returndata:
-                    r = returndata["translatedText"]
-                else:
-                    return {"response": "Error: Translation Failed"}
-            except requests.exceptions.JSONDecodeError:
-                return {"response": "ERROR: Error retrieving translation"}
-            return {"response": r}
+        case 1: # LibreTranslate (Deprecated)
+            return {"response": "NOTICE: LibreTranslate method no longer supported"}
