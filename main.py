@@ -15,7 +15,7 @@ deepl_quota = int(os.getenv('DEEPL_QUOTA', 1500000))
 from pprint import pprint
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
 from enum import Enum
 import time
 import requests
@@ -83,8 +83,8 @@ class Language(str, Enum):
                 return member
         return None
 
-class ResponseMessage(BaseModel):
-    response: str
+class ResponseMessage(Response):
+    media_type = "text/plain"
 
 class TranslationData(BaseModel):
     user: str | None = None
@@ -126,7 +126,7 @@ async def addtodb(method, response, user):
 
 @app.post("/translate")
 @app.post("/translate/")
-async def translate(data: TranslationData)  -> PlainTextResponse:
+async def translate(data: TranslationData)  -> ResponseMessage:
     q = data.q
     target = data.target.value.upper()
     source = data.source.value.upper()
