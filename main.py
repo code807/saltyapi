@@ -151,10 +151,10 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 try:
                     r = returndata["data"]["translations"][0]["translatedText"]
                 except Exception as e:
-                    return {"response": "Error: Unexpected Response from Google Translate"}
+                    return ResponseMessage("Error: Unexpected Response from Google Translate")
                 if enable_db:
                     await addtodb(api, r, user)
-                return r
+                return ResponseMessage(r)
 
         case 2: # DeepL
             if checkquota(api):
@@ -173,10 +173,10 @@ async def translate(data: TranslationData)  -> ResponseMessage:
                 try:
                     r = returndata["translations"][0]["text"]
                 except Exception as e:
-                    return "Error: Unexpected Response from DEEPL"
+                    return ResponseMessage("Error: Unexpected Response from DEEPL")
                 if enable_db:
                     await addtodb(api, r, user)
-                return r
+                return ResponseMessage(r)
         
         case 1: # LibreTranslate (Deprecated)
-            return "NOTICE: LibreTranslate method no longer supported"
+            return ResponseMessage("NOTICE: LibreTranslate method no longer supported")
