@@ -74,6 +74,14 @@ class Language(str, Enum):
     Turkish = "TR",
     Ukrainian = "UK"
 
+    @classmethod
+    def _missing_(cls, value):
+        value = value.upper()
+        for member in cls:
+            if member.upper() == value:
+                return member
+        return None
+
 class ResponseMessage(BaseModel):
     response: str
 
@@ -116,10 +124,11 @@ async def addtodb(method, response, user):
 
 
 @app.post("/translate")
+@app.post("/translate/")
 async def translate(data: TranslationData)  -> ResponseMessage:
     q = data.q
-    target = data.target.value
-    source = data.source.value
+    target = data.target.value.upper()
+    source = data.source.value.upper()
     user = data.user
     api = data.method
     if target == source:
