@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,7 +17,6 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from enum import Enum
 import time
-import os
 import requests
 
 if enable_db:
