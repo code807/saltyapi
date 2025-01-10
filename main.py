@@ -34,7 +34,7 @@ if enable_db:
         cursor_obj = connection_obj.cursor()
         cursor_obj.execute("DROP TABLE IF EXISTS requests")
         table = """ CREATE TABLE requests (
-                    username INTEGER,
+                    username TEXT,
                     timestamp REAL,
                     characters INTEGER,
                     method INTEGER
