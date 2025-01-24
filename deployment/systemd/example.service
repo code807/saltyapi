@@ -3,7 +3,7 @@ Description=Salty API
 After=network.target
 
 [Service]
-User=seer
+User=salty
 Group=www-data
 WorkingDirectory=/var/www/python/saltyapi
 ExecStart=/var/www/python/saltyapi/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
